@@ -14,6 +14,9 @@
   "dependencies": {
     "comander": "^0.0.1-security",
     "commander": "^14.0.2",
+    "express": "^5.1.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
     "superagent": "^10.2.3"
   },
   "devDependencies": {
