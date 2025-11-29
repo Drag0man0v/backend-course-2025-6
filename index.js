@@ -69,7 +69,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Сховище для інвентарю (в пам'яті)
+// Сховище для інвентарю 
 let inventory = [];
 let nextId = 1;
 
@@ -178,7 +178,7 @@ app.route('/inventory/:id')
 
     // Видалення фото, якщо воно існує
     if (item.photo) {
-      const photoPath = path.join(options.cache, item.photo);
+      const photoPath = path.resolve(options.cache, item.photo);
       if (fs.existsSync(photoPath)) {
         fs.unlinkSync(photoPath);
       }
@@ -205,7 +205,7 @@ app.route('/inventory/:id/photo')
       return res.status(404).send('Not Found: Photo does not exist');
     }
 
-    const photoPath = path.join(options.cache, item.photo);
+    const photoPath = path.resolve(options.cache, item.photo);
 
     if (!fs.existsSync(photoPath)) {
       return res.status(404).send('Not Found: Photo file does not exist');
@@ -224,7 +224,7 @@ app.route('/inventory/:id/photo')
 
     // Видалення старого фото, якщо воно існує
     if (item.photo) {
-      const oldPhotoPath = path.join(options.cache, item.photo);
+      const oldPhotoPath = path.resolve(options.cache, item.photo);
       if (fs.existsSync(oldPhotoPath)) {
         fs.unlinkSync(oldPhotoPath);
       }
@@ -244,7 +244,7 @@ app.route('/inventory/:id/photo')
 // GET /RegisterForm.html - Веб форма для реєстрації пристрою
 app.route('/RegisterForm.html')
   .get((req, res) => {
-    const formPath = path.join(__dirname, 'RegisterForm.html');
+    const formPath = path.resolve(__dirname, 'RegisterForm.html');
     
     if (!fs.existsSync(formPath)) {
       return res.status(404).send('Not Found: RegisterForm.html does not exist');
@@ -259,7 +259,7 @@ app.route('/RegisterForm.html')
 // GET /SearchForm.html - Веб форма для пошуку пристрою
 app.route('/SearchForm.html')
   .get((req, res) => {
-    const formPath = path.join(__dirname, 'SearchForm.html');
+    const formPath = path.resolve(__dirname, 'SearchForm.html');
     
     if (!fs.existsSync(formPath)) {
       return res.status(404).send('Not Found: SearchForm.html does not exist');
