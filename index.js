@@ -49,6 +49,32 @@ if (!fs.existsSync(options.cache)) {
 // Створення Express застосунку
 const app = express();
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerJSDoc = require('swagger-jsdoc');
+
+const swaggerDefinition = {
+ swagger: '2.0',
+  info: {
+    title: 'Inventory API',
+    version: '1.0.0',
+    description: 'Документація API для інвентаризації пристроїв',
+  },
+  servers: [
+    {
+      url: `http://${options.host}:${options.port}`,
+    },
+  ],
+};
+
+const optionsSwagger = {
+  swaggerDefinition,
+  apis: ['./index.js'], // Тут вказуємо, де шукати коментарі @swagger
+};
+
+const swaggerSpec = swaggerJSDoc(optionsSwagger);
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Підключаємо логер
 app.use(morgan('dev'));
 
@@ -72,8 +98,36 @@ const upload = multer({ storage: storage });
 // Сховище для інвентарю 
 let inventory = [];
 let nextId = 1;
-
-// POST /register - Реєстрація нового пристрою
+/**
+ * @swagger
+ * /register:
+ *   post:
+ *     summary: Реєстрація нового пристрою
+ *     description: Реєструє новий пристрій, приймає multipart/form-data з полями і файлом.
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: inventory_name
+ *         required: true
+ *         type: string
+ *         description: Назва об'єкта.
+ *       - in: formData
+ *         name: description
+ *         required: false
+ *         type: string
+ *         description: Опис речі.
+ *       - in: formData
+ *         name: photo
+ *         required: false
+ *         type: file
+ *         description: Фото об'єкта.
+ *     responses:
+ *       201:
+ *         description: Річ зареєстровано успішно.
+ *       500:
+ *         description: Внутрішня помилка сервера.
+ */
 app.route('/register')
   .post(upload.single('photo'), (req, res) => {
     const { inventory_name, description } = req.body;
@@ -106,6 +160,37 @@ app.route('/register')
     res.status(405).send('Method Not Allowed');
   });
 
+  /**
+ * @swagger
+ * /inventory:
+ *   get:
+ *     summary: Отримати весь список інвентарю
+ *     description: Повертає масив усіх зареєстрованих пристроїв.
+ *     responses:
+ *       200:
+ *         description: Успішне отримання інвентарю.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   inventory_name:
+ *                     type: string
+ *                     example: "Ноутбук HP"
+ *                   description:
+ *                     type: string
+ *                     example: "Робочий ноутбук в офісі"
+ *                   photo_url:
+ *                     type: string
+ *                     example: "/uploads/laptop.jpg"
+ *       500:
+ *         description: Внутрішня помилка сервера.
+ */
 // GET /inventory - Отримання списку всіх інвентаризованих речей
 app.route('/inventory')
   .get((req, res) => {
@@ -122,6 +207,60 @@ app.route('/inventory')
     res.status(405).send('Method Not Allowed');
   });
 
+/**
+ * @swagger
+ * /inventory/{id}:
+ *   get:
+ *     summary: Отримання інформації про конкретну річ
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Унікальний ID речі
+ *     responses:
+ *       200:
+ *         description: Інформація про річ
+ *       404:
+ *         description: Річ не знайдена
+ *   put:
+ *     summary: Оновлення імені або опису конкретної речі
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: body
+ *         name: body
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             inventory_name:
+ *               type: string
+ *             description:
+ *               type: string
+ *     responses:
+ *       200:
+ *         description: Успішно оновлено
+ *       404:
+ *         description: Річ не знайдена
+ *   delete:
+ *     summary: Видалення інвентарної речі
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Річ успішно видалена
+ *       404:
+ *         description: Річ не знайдена
+ */
 // GET/PUT/DELETE /inventory/<ID> - Операції з конкретною річчю
 app.route('/inventory/:id')
   .get((req, res) => {
@@ -195,6 +334,42 @@ app.route('/inventory/:id')
     res.status(405).send('Method Not Allowed');
   });
 
+  /**
+ * @swagger
+ * /inventory/{id}/photo:
+ *   get:
+ *     summary: Отримання фото зображення конкретної речі
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Фото речі
+ *       404:
+ *         description: Річ або фото не знайдено
+ *   put:
+ *     summary: Оновлення фото зображення конкретної речі
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: formData
+ *         name: photo
+ *         type: file
+ *         description: Нове фото
+ *     responses:
+ *       200:
+ *         description: Фото оновлено
+ *       404:
+ *         description: Річ не знайдена
+ */
 // GET/PUT /inventory/<ID>/photo - Операції з фото
 app.route('/inventory/:id/photo')
   .get((req, res) => {
@@ -256,6 +431,7 @@ app.route('/RegisterForm.html')
     res.status(405).send('Method Not Allowed');
   });
 
+
 // GET /SearchForm.html - Веб форма для пошуку пристрою
 app.route('/SearchForm.html')
   .get((req, res) => {
@@ -270,12 +446,37 @@ app.route('/SearchForm.html')
   .all((req, res) => {
     res.status(405).send('Method Not Allowed');
   });
+/**
+ * @swagger
+ * /search:
+ *   post:
+ *     summary: Пошук пристрою за ID
+ *     description: Пошук пристрою за серійним номером. Якщо has_photo = true, до опису додається URL фото.
+ *     consumes:
+ *       - application/x-www-form-urlencoded
+ *     parameters:
+ *       - in: formData
+ *         name: id
+ *         type: integer
+ *         required: true
+ *         description: Серійний номер пристрою
+ *       - in: formData
+ *         name: has_photo
+ *         type: boolean
+ *         required: false
+ *         description: Додає URL фото до опису, якщо true
+ *     responses:
+ *       200:
+ *         description: Інформація про річ
+ *       404:
+ *         description: Річ не знайдена
+ */
 
 // POST /search - Обробка запиту пошуку пристрою за ID
 app.route('/search')
   .post((req, res) => {
     const id = parseInt(req.body.id);
-    const hasPhoto = req.body.has_photo === 'on' || req.body.has_photo === 'true';
+    const hasPhoto = req.body.has_photo === 'on' || req.body.has_photo === 'true' || req.body.has_photo === true ;
 
     const item = inventory.find(i => i.id === id);
 
